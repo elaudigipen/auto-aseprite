@@ -93,7 +93,7 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Aseprite-mac-${{ steps.get_version_macos.outputs.version }}
           path: build/bin/Aseprite.app
