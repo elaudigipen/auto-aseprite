@@ -3,17 +3,16 @@ name: Auto build Aseprite
 on:
   push:
     branches: main
-
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  auto-build:
+  # Existing Windows job (unchanged)
+  auto-build-windows:
     name: Auto build Aseprite for Windows x64
     runs-on: windows-2022
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -61,3 +60,40 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.version }}
           files: |
             Aseprite-Windows-x64-${{ steps.get_version.outputs.version }}.zip
+
+  # New macOS job
+  auto-build-macos:
+    name: Auto build Aseprite for macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          brew install cmake pkg-config libpng jpeg freetype ninja python3
+
+      - name: Download Aseprite
+        run: |
+          python3 download.py
+
+      - name: Build Aseprite
+        run: |
+          mkdir build
+          cd build
+          cmake "${{ github.workspace }}/src/aseprite" -G Ninja -DCMAKE_BUILD_TYPE=Release -DLAF_BACKEND=skia -DSKIA_DIR="${{ github.workspace }}/src/skia"
+          cmake --build . --config Release
+
+      - name: Get version
+        id: get_version_macos
+        run: |
+          version=$(cat version.txt)
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Aseprite-mac-${{ steps.get_version_macos.outputs.version }}
+          path: build/bin/Aseprite.app
